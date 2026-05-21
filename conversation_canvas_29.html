@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash it Out</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Barriecito&family=Oi&family=Pinyon+Script&family=UnifrakturMaguntia&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;font-family:'DM Sans',sans-serif;background:#000;color:#fff;}
+#app{width:100%;height:100%;}
+
+/* ── LOBBY ── */
+#lobby-screen{width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;}
+#lobby-box{display:flex;flex-direction:column;gap:28px;}
+.lobby-label{font-family:'DM Sans',sans-serif;font-weight:300;font-size:22px;color:#fff;margin-bottom:6px;}
+.lobby-input{background:#000;border:1px solid #fff;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:300;padding:12px 16px;width:280px;outline:none;border-radius:0;}
+.lobby-input::placeholder{color:#555;}
+#lobby-actions{display:flex;align-items:center;gap:24px;margin-top:4px;}
+#get-url-btn{border:1px solid #fff;background:#000;color:#fff;font-family:'DM Sans',sans-serif;font-size:18px;font-weight:300;padding:6px 14px;cursor:pointer;border-radius:0;}
+#get-url-btn:hover{background:#111;}
+#session-url{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;color:#aaa;word-break:break-all;max-width:340px;}
+
+/* waiting screen */
+#waiting-screen{width:100%;height:100%;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#waiting-text{font-family:'DM Sans',sans-serif;font-weight:300;font-size:18px;color:#fff;}
+#waiting-url{font-family:'DM Sans',sans-serif;font-size:13px;color:#666;cursor:pointer;}
+#waiting-url:hover{color:#999;}
+#presence-row{display:flex;gap:12px;align-items:center;margin-top:8px;}
+.presence-dot{width:10px;height:10px;border-radius:50%;background:#333;}
+.presence-dot.online{background:#4a7c3f;}
+.presence-name{font-family:'DM Sans',sans-serif;font-size:13px;color:#666;}
+
+/* welcome typewriter */
+#welcome-screen{width:100%;height:100%;background:#000;display:none;align-items:center;justify-content:center;}
+#welcome-text{color:#fff;font-family:'DM Sans',sans-serif;font-weight:300;font-size:18px;}
+
+/* end screen */
+#end-screen{width:100%;height:100%;background:#000;display:none;align-items:center;justify-content:center;}
+#end-text{color:#fff;font-family:'DM Sans',sans-serif;font-weight:300;font-size:18px;}
+
+/* ── CANVAS SCREEN ── */
+#canvas-screen{display:none;width:100%;height:100%;flex-direction:column;background:#fff;color:#000;}
+#top-bar{flex-shrink:0;background:#fff;padding:10px 0 4px;}
+#top-bar-inner{display:flex;flex-direction:column;align-items:center;}
+#turn-label{font-size:18px;font-weight:400;color:#000;font-family:'DM Sans',sans-serif;}
+#timer-box{display:inline-block;border:1px solid #000;padding:2px 14px;font-size:15px;color:#000;margin-top:3px;font-family:'DM Sans',sans-serif;}
+#share-btn-top{display:none;border:1px solid #000;background:#fff;color:#000;font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 14px;cursor:pointer;border-radius:0;-webkit-appearance:none;appearance:none;margin-top:6px;}
+#share-btn-top:hover{background:#f0f0f0;}
+
+/* presence indicator in canvas */
+#canvas-presence{display:flex;gap:16px;padding:4px 0 2px;flex-shrink:0;background:#fff;}
+.cp-item{display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:11px;color:#999;}
+.cp-dot{width:8px;height:8px;border-radius:50%;background:#ccc;}
+.cp-dot.online{background:#4a7c3f;}
+
+#main-area{display:flex;flex:1;min-height:0;padding:0 14px;gap:14px;}
+#toolbar{display:flex;flex-direction:column;gap:7px;padding:0;width:150px;flex-shrink:0;overflow:hidden;}
+.tool-btn{display:block;width:100%;border:1px solid #000;background:#fff;color:#000;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;padding:5px 10px;cursor:pointer;text-align:center;border-radius:0;outline:none;-webkit-appearance:none;appearance:none;}
+.tool-btn.active{background:#000;color:#fff;}
+.tool-btn:hover:not(.active){background:#f0f0f0;}
+#font-list{display:none;flex-direction:column;margin-top:-7px;}
+#snapshot-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-bottom:4px;}
+.snapshot-wrap{position:relative;cursor:pointer;flex-shrink:0;}
+.snapshot-thumb{width:100%;display:block;border:1px solid #000;}
+.snapshot-label{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.75);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;padding:3px 7px;white-space:nowrap;pointer-events:none;border-radius:2px;}
+.snapshot-wrap:hover .snapshot-label{display:block;}
+#snapshot-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;cursor:pointer;}
+#snapshot-overlay img{max-width:90%;max-height:90%;border:1px solid #333;}
+.font-opt{display:block;width:100%;border:1px solid #000;border-top:none;background:#fff;color:#000;padding:6px 10px;cursor:pointer;text-align:center;font-size:16px;line-height:1.3;border-radius:0;outline:none;-webkit-appearance:none;appearance:none;}
+.font-opt:hover:not(.active){background:#f0f0f0;}
+.font-opt.active{background:#000;color:#fff;}
+.font-opt[data-font="pinyon"]{font-family:'Pinyon Script',cursive;font-size:20px;}
+.font-opt[data-font="barriecito"]{font-family:'Barriecito',cursive;font-size:18px;}
+.font-opt[data-font="unifraktur"]{font-family:'UnifrakturMaguntia',cursive;font-size:17px;}
+.font-opt[data-font="oi"]{font-family:'Oi',serif;font-size:17px;}
+#canvas-col{flex:1;min-width:0;display:flex;flex-direction:column;}
+#public-wrap{position:relative;flex:1;min-height:0;}
+#public-canvas{display:block;border:1px solid #000;touch-action:none;}
+#turn-warning{position:absolute;top:8px;left:50%;transform:translateX(-50%);border:1px solid #000;background:#fff;color:#000;font-family:'DM Sans',sans-serif;font-size:13px;padding:5px 14px;white-space:nowrap;display:none;z-index:5;}
+
+
+#private-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'DM Sans',sans-serif;font-size:14px;color:#888;pointer-events:none;text-align:center;line-height:1.6;width:80%;display:none;}
+#bottom-bar{flex-shrink:0;background:#fff;padding:8px 0 10px;position:relative;}
+#bottom-bar-inner{display:flex;align-items:center;justify-content:center;}
+#emotion-row{display:flex;align-items:center;justify-content:center;width:100%;}
+.emotion-btn{height:30px;border-radius:50%;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:transform 0.12s;}
+.emotion-btn:hover{transform:scale(1.15);}
+.elabel{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#000;opacity:0;pointer-events:none;font-family:'DM Sans',sans-serif;transition:opacity 0.2s;}
+.emotion-btn:hover .elabel{opacity:1;}
+#end-conv-btn{position:absolute;left:14px;top:50%;transform:translateY(-50%);border:1px solid #000;background:#fff;color:#000;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;padding:5px 10px;cursor:pointer;border-radius:0;-webkit-appearance:none;appearance:none;width:150px;text-align:center;}
+#end-conv-btn:hover{background:#f0f0f0;}
+#confirm-popup{position:absolute;left:14px;bottom:10px;background:#000;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;padding:12px 14px;width:170px;line-height:1.5;display:none;z-index:10;}
+#confirm-popup button{background:#000;border:1px solid #fff;color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;margin-top:8px;margin-right:4px;border-radius:0;}
+#confirm-popup button:hover{background:#222;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- LOADING -->
+  <div id="loading-screen" style="width:100%;height:100%;background:#000;display:none;align-items:center;justify-content:center;">
+    <span style="color:#fff;font-family:'DM Sans',sans-serif;font-weight:300;font-size:18px;">Loading your conversation...</span>
+  </div>
+
+  <!-- SPLASH -->
+  <div id="splash-screen" style="width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;"><span id="splash-text" style="color:#fff;font-family:'DM Sans',sans-serif;font-weight:500;font-size:24px;"></span></div>
+
+  <!-- LOBBY -->
+  <div id="lobby-screen" style="display:none;">
+    <div style="position:absolute;top:40px;left:50%;transform:translateX(-50%);color:#fff;font-family:'DM Sans',sans-serif;font-weight:500;font-size:24px;">Hash it out. A platform for healthier arguments.</div>
+    <div id="lobby-box">
+      <div>
+        <div class="lobby-label">Your Name</div>
+        <input class="lobby-input" id="my-name" type="text" placeholder="" />
+      </div>
+      <div>
+        <div class="lobby-label">Invitee's Name</div>
+        <input class="lobby-input" id="their-name" type="text" placeholder="" />
+      </div>
+      <div id="lobby-actions">
+        <button id="get-url-btn" onclick="createSession()">Get url</button>
+        <button id="start-waiting-btn" onclick="goToWaiting()" style="display:none;border:1px solid #fff;background:#000;color:#fff;font-family:'DM Sans',sans-serif;font-size:18px;font-weight:300;padding:6px 14px;cursor:pointer;border-radius:0;">I've shared the link</button>
+        <span id="session-url"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAITING FOR OTHER PERSON -->
+  <div id="waiting-screen">
+    <div id="waiting-text"></div>
+    <div id="waiting-url" onclick="copyUrl()"></div>
+    <div id="presence-row"></div>
+  </div>
+
+  <!-- WELCOME TYPEWRITER -->
+  <div id="welcome-screen"><span id="welcome-text"></span></div>
+
+  <!-- CANVAS -->
+  <div id="canvas-screen">
+    <div id="top-bar">
+      <div id="top-bar-inner">
+        <div id="turn-label">Loading...</div>
+        <div id="timer-box">2:00</div>
+        <button id="share-btn-top" onclick="sharePrivate()">Share private canvas</button>
+      </div>
+    </div>
+    <div id="canvas-presence"></div>
+    <div id="main-area">
+      <div id="toolbar">
+        <button class="tool-btn active" id="btn-draw" onclick="selectTool('draw')">Draw</button>
+        <button class="tool-btn" id="btn-type" onclick="selectTool('type')">Type</button>
+        <div id="font-list">
+          <button class="font-opt active" data-font="pinyon" onclick="selectFont(this)">Pinyon Script</button>
+          <button class="font-opt" data-font="barriecito" onclick="selectFont(this)">Barriecito</button>
+          <button class="font-opt" data-font="unifraktur" onclick="selectFont(this)">UnifrakturMaguntia</button>
+          <button class="font-opt" data-font="oi" onclick="selectFont(this)">Oi</button>
+        </div>
+        <button class="tool-btn" id="btn-undo" onclick="undoLast()">Undo</button>
+        <div id="snapshot-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;overflow-y:auto;flex:1;"></div>
+      </div>
+      <div id="canvas-col">
+        <div id="public-wrap">
+          <div id="turn-warning">Your turn is ending in 30 seconds.</div>
+          <canvas id="public-canvas"></canvas>
+          <div id="private-hint"></div>
+        </div>
+
+      </div>
+    </div>
+    <div id="bottom-bar">
+      <div id="bottom-bar-inner">
+        <div id="emotion-row"></div>
+      </div>
+      <button id="end-conv-btn" onclick="showConfirm()">End Conversation</button>
+      <div id="confirm-popup">
+        Are you sure you want to end the conversation?<br>
+        <button onclick="endConversation()">Yes</button>
+        <button onclick="hideConfirm()">No</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="end-screen"><span id="end-text"></span></div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, push, update, onDisconnect }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFfuoxaXEVYrPUy3CBfe4s_ZJAo7n7QpQ",
+  authDomain: "hash-it-out-344ef.firebaseapp.com",
+  databaseURL: "https://hash-it-out-344ef-default-rtdb.firebaseio.com",
+  projectId: "hash-it-out-344ef",
+  storageBucket: "hash-it-out-344ef.firebasestorage.app",
+  messagingSenderId: "17497442314",
+  appId: "1:17497442314:web:4742d1ccf3d36f524df7f3"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
+const FONT_MAP={pinyon:"'Pinyon Script',cursive",barriecito:"'Barriecito',cursive",unifraktur:"'UnifrakturMaguntia',cursive",oi:"'Oi',serif"};
+
+let sessionId=null, myRole=null, myName='', theirName='';
+let currentTool='draw', timerSeconds=120, timerInterval=null;
+let canvasBg='#ffffff', warningShown=false, selectedFont=FONT_MAP.pinyon;
+let isDrawing=false, currentStroke=null, dragTarget=null, dragOffX=0, dragOffY=0;
+let typingActive=false, typeX=0, typeY=0, typeText='', typeCursorOn=true, typeCursorInterval=null;
+let currentTurnRole='creator';
+
+// Public content (synced via Firebase)
+const publicState={strokes:[],draggables:[]};
+// Private content (local only, persists across turn switches until shared or new turn starts for THIS user)
+const privateState={strokes:[],draggables:[]};
+// Pending = the waiting person's private work saved when turn switched, shown greyed on active canvas
+let pendingPrivate={strokes:[],draggables:[]};
+let privateShared=false;
+let privateAlreadySaved=false; // track if we already saved private to pending this turn
+
+const canvas=document.getElementById('public-canvas');
+const ctx=canvas.getContext('2d');
+const hintEl=document.getElementById('private-hint');
+
+// ── UTILS ──
+function normalizeStrokes(raw){
+  if(!raw)return[];
+  const arr=Array.isArray(raw)?raw:Object.values(raw);
+  return arr.filter(s=>s&&s.points).map(s=>({...s,points:Array.isArray(s.points)?s.points:Object.values(s.points)})).filter(s=>s.points.length>0);
+}
+function normalizeDraggables(raw){
+  if(!raw)return[];
+  const arr=Array.isArray(raw)?raw:Object.values(raw);
+  return arr.filter(d=>d&&d.type);
+}
+function isMyTurn(){return currentTurnRole===myRole;}
+function getContrastColor(hex){
+  if(!hex||hex==='#ffffff')return'#000';
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return(r*299+g*587+b*114)/1000>128?'#000':'#fff';
+}
+function wrapText(text,maxW,font){
+  ctx.save();ctx.font=font;
+  const words=text.split(' '),lines=[];let line='';
+  words.forEach(w=>{const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;});
+  if(line)lines.push(line);ctx.restore();return lines.length?lines:[''];
+}
+function drawStroke(st,alpha){
+  if(!st||!st.points)return;
+  const pts=Array.isArray(st.points)?st.points:Object.values(st.points);
+  if(pts.length<1)return;
+  ctx.save();ctx.globalAlpha=alpha;
+  ctx.beginPath();ctx.strokeStyle=st.color||'#000';ctx.lineWidth=st.width||4;ctx.lineCap='round';ctx.lineJoin='round';
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();ctx.restore();
+}
+function drawDraggable(d,bg,alpha){
+  if(!d||!d.type)return;
+  ctx.save();ctx.globalAlpha=alpha;
+  if(d.type==='text'){
+    const f=`400 20px ${d.font||"'DM Sans',sans-serif"}`;
+    ctx.font=f;ctx.fillStyle=getContrastColor(bg);
+    wrapText(d.text,canvas.width-d.x-20,f).forEach((l,i)=>ctx.fillText(l,d.x,d.y+i*26));
+  }
+  ctx.restore();
+}
+
+// ── REDRAW ──
+// Single canvas serves both roles:
+// Active turn: full opacity public content + greyed pending overlay
+// Waiting turn: greyed public content + full opacity private content on top
+function redraw(){
+  ctx.fillStyle=canvasBg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  if(isMyTurn()){
+    // Show pending private greyed overlay first
+    if(!privateShared){
+      pendingPrivate.strokes.forEach(st=>drawStroke(st,0.25));
+      pendingPrivate.draggables.forEach(d=>drawDraggable(d,canvasBg,0.25));
+    }
+    // Draw public content at full opacity
+    publicState.strokes.forEach(st=>drawStroke(st,1));
+    publicState.draggables.forEach(d=>drawDraggable(d,canvasBg,1));
+    // Typing preview
+    if(typingActive){
+      const f=`400 20px ${selectedFont}`;
+      ctx.font=f;ctx.fillStyle=getContrastColor(canvasBg);
+      wrapText(typeText+(typeCursorOn?'|':''),canvas.width-typeX-20,f).forEach((l,i)=>ctx.fillText(l,typeX,typeY+i*26));
+    }
+  } else {
+    // Waiter: public at low opacity as background
+    publicState.strokes.forEach(st=>drawStroke(st,0.3));
+    publicState.draggables.forEach(d=>drawDraggable(d,canvasBg,0.3));
+    // Private work at full opacity on top
+    privateState.strokes.forEach(st=>drawStroke(st,1));
+    privateState.draggables.forEach(d=>drawDraggable(d,canvasBg,1));
+    // Typing preview
+    if(typingActive){
+      const f=`400 20px ${selectedFont}`;
+      ctx.font=f;ctx.fillStyle=getContrastColor(canvasBg);
+      wrapText(typeText+(typeCursorOn?'|':''),canvas.width-typeX-20,f).forEach((l,i)=>ctx.fillText(l,typeX,typeY+i*26));
+    }
+    // Hint
+    const hasPrivate=privateState.strokes.length>0||privateState.draggables.length>0;
+    hintEl.style.display=(!hasPrivate&&!typingActive)?'block':'none';
+  }
+}
+
+// ── SIZING ──
+function alignBars(){
+  const toolbar=document.getElementById('toolbar');
+  const offset=14+toolbar.offsetWidth+14;
+  document.getElementById('top-bar-inner').style.marginLeft=offset+'px';
+  document.getElementById('top-bar-inner').style.marginRight='14px';
+  document.getElementById('bottom-bar-inner').style.marginLeft=offset+'px';
+  document.getElementById('bottom-bar-inner').style.marginRight='14px';
+  const cp=document.getElementById('canvas-presence');
+  if(cp){cp.style.marginLeft=offset+'px';cp.style.marginRight='14px';}
+  document.getElementById('end-conv-btn').style.width=toolbar.offsetWidth+'px';
+}
+function resizeCanvas(){
+  const col=document.getElementById('canvas-col');
+  const mainH=document.getElementById('main-area').offsetHeight;
+  canvas.width=col.clientWidth-2;
+  canvas.height=Math.max(200,mainH-2);
+  alignBars();buildEmotionRow();redraw();
+}
+
+// ── INPUT ──
+function getPos(e){
+  const rect=canvas.getBoundingClientRect();
+  const src=e.touches?e.touches[0]:e;
+  return{x:src.clientX-rect.left,y:src.clientY-rect.top};
+}
+function findDraggable(x,y){
+  const arr=isMyTurn()?publicState.draggables:privateState.draggables;
+  for(let i=arr.length-1;i>=0;i--){
+    const d=arr[i];
+    if(x>=d.x-10&&x<=d.x+320&&y>=d.y-30&&y<=d.y+60)return d;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown',onDown);
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onUp);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();onUp();},{passive:false});
+
+function onDown(e){
+  const p=getPos(e);
+  if(currentTool==='draw'){
+    const hit=findDraggable(p.x,p.y);
+    if(hit){dragTarget=hit;dragOffX=p.x-hit.x;dragOffY=p.y-hit.y;return;}
+    isDrawing=true;
+    currentStroke={points:[{x:p.x,y:p.y}],color:getContrastColor(canvasBg),width:4};
+  } else if(currentTool==='type'){
+    const hit=findDraggable(p.x,p.y);
+    if(hit){dragTarget=hit;dragOffX=p.x-hit.x;dragOffY=p.y-hit.y;return;}
+    commitTyping();
+    typeX=p.x;typeY=p.y;typeText='';typingActive=true;
+    startTypingCursor();hintEl.style.display='none';redraw();
+  }
+}
+function onMove(e){
+  const p=getPos(e);
+  if(dragTarget){dragTarget.x=p.x-dragOffX;dragTarget.y=p.y-dragOffY;redraw();return;}
+  if(isDrawing&&currentStroke){
+    currentStroke.points.push({x:p.x,y:p.y});
+    const pts=currentStroke.points;
+    if(pts.length>1){
+      ctx.save();
+      if(!isMyTurn())ctx.globalAlpha=1; // private strokes full opacity
+      ctx.beginPath();ctx.strokeStyle=currentStroke.color;ctx.lineWidth=currentStroke.width;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.moveTo(pts[pts.length-2].x,pts[pts.length-2].y);ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+async function onUp(){
+  if(dragTarget){
+    // Always sync draggable positions to Firebase so both users see updated positions
+    if(isMyTurn()){
+      await set(ref(db,`sessions/${sessionId}/draggables`),publicState.draggables);
+    }
+    dragTarget=null;redraw();return;
+  }
+  if(isDrawing&&currentStroke){
+    if(isMyTurn()){
+      publicState.strokes.push(currentStroke);
+      await set(ref(db,`sessions/${sessionId}/strokes`),publicState.strokes);
+    } else {
+      privateState.strokes.push(currentStroke);
+      // Save private to Firebase so it persists if page refreshes (optional but good)
+      await set(ref(db,`sessions/${sessionId}/privateOf_${myRole}`),{strokes:privateState.strokes,draggables:privateState.draggables});
+    }
+    currentStroke=null;isDrawing=false;redraw();
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(!typingActive||currentTool!=='type')return;
+  e.preventDefault();
+  if(e.key==='Enter'||e.key==='Escape'){commitTyping();return;}
+  if(e.key==='Backspace')typeText=typeText.slice(0,-1);
+  else if(e.key.length===1)typeText+=e.key;
+  redraw();
+});
+function startTypingCursor(){clearInterval(typeCursorInterval);typeCursorOn=true;typeCursorInterval=setInterval(()=>{typeCursorOn=!typeCursorOn;redraw();},530);}
+async function commitTyping(){
+  clearInterval(typeCursorInterval);typeCursorOn=false;
+  if(typingActive&&typeText.trim()){
+    const obj={type:'text',text:typeText.trim(),x:typeX,y:typeY,font:selectedFont};
+    if(isMyTurn()){
+      publicState.draggables.push(obj);
+      await set(ref(db,`sessions/${sessionId}/draggables`),publicState.draggables);
+    } else {
+      privateState.draggables.push(obj);
+      await set(ref(db,`sessions/${sessionId}/privateOf_${myRole}`),{strokes:privateState.strokes,draggables:privateState.draggables});
+    }
+  }
+  typingActive=false;typeText='';redraw();
+}
+
+
+// ── EMOTION ROW ──
+const COLOR_PALETTE = ["#2d6a1f","#3a7a28","#4a7c3f","#5a8c4a","#6a9c55","#7aac60","#8db85a","#a0c464","#b4d06a","#c8dc70","#dce876","#e8d06a","#f0c055","#f0b040","#e8a030","#e07b2a","#d86020","#cc4820","#c0392b","#b02020"];
+
+function buildEmotionRow(){
+  const row = document.getElementById('emotion-row');
+  const bottomInner = document.getElementById('bottom-bar-inner');
+  // Available width = canvas width
+  const availW = canvas.offsetWidth;
+  const btnSize = 30;
+  const minGap = 4;
+  const count = Math.max(2, Math.min(COLOR_PALETTE.length, Math.floor((availW + minGap) / (btnSize + minGap))));
+  // Pick evenly spaced colors from palette
+  const step = (COLOR_PALETTE.length - 1) / (count - 1);
+  const colors = Array.from({length: count}, (_, i) => COLOR_PALETTE[Math.round(i * step)]);
+  const gap = Math.floor((availW - count * btnSize) / (count - 1));
+
+  row.style.gap = gap + 'px';
+  row.style.width = availW + 'px';
+  row.innerHTML = '';
+
+  const isActive = isMyTurn();
+
+  colors.forEach((color, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'emotion-btn';
+    btn.style.background = color;
+    btn.style.width = btnSize + 'px';
+    btn.style.opacity = isActive ? '1' : '0.3';
+    btn.style.cursor = isActive ? 'pointer' : 'not-allowed';
+    if(i === 0){
+      const lbl = document.createElement('span');
+      lbl.className = 'elabel';lbl.textContent = 'Not upset';
+      btn.appendChild(lbl);
+    }
+    if(i === colors.length - 1){
+      const lbl = document.createElement('span');
+      lbl.className = 'elabel';lbl.textContent = 'Very upset';
+      btn.appendChild(lbl);
+    }
+    if(isActive){
+      btn.onclick = () => window.setCanvasColor(color);
+    }
+    row.appendChild(btn);
+  });
+
+  // Align bottom-bar-inner to canvas column
+  const toolbar = document.getElementById('toolbar');
+  const offset = 14 + toolbar.offsetWidth + 14;
+  bottomInner.style.marginLeft = offset + 'px';
+  bottomInner.style.marginRight = '14px';
+}
+
+
+
+// ── SNAPSHOTS ──
+let turnCount = 0;
+
+async function captureSnapshot(){
+  turnCount++;
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+  const aspectRatio = canvas.height / canvas.width;
+  // Save to Firebase so both users get it
+  const snapRef = ref(db, `sessions/${sessionId}/snapshots/${turnCount}`);
+  await set(snapRef, {dataUrl, turnCount, aspectRatio});
+}
+
+function renderSnapshots(snaps){
+  const list = document.getElementById('snapshot-list');
+  list.innerHTML = '';
+  const sorted = Object.values(snaps).sort((a,b)=>b.turnCount-a.turnCount);
+  sorted.forEach(snap=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'snapshot-wrap';
+    const img = document.createElement('img');
+    img.className = 'snapshot-thumb';
+    img.src = snap.dataUrl;
+    const lbl = document.createElement('div');
+    lbl.className = 'snapshot-label';
+    lbl.textContent = `Turn ${snap.turnCount}`;
+    wrap.appendChild(img);
+    wrap.appendChild(lbl);
+    wrap.onclick = (e) => {
+      e.stopPropagation();
+      const ov = document.getElementById('snapshot-overlay');
+      document.getElementById('snapshot-overlay-img').src = snap.dataUrl;
+      ov.style.display = 'flex';
+    };
+    list.appendChild(wrap);
+  });
+}
+
+window.openSnapshot = function(src){
+  const overlay = document.getElementById('snapshot-overlay');
+  document.getElementById('snapshot-overlay-img').src = src;
+  overlay.style.display = 'flex';
+};
+window.closeSnapshot = function(){
+  document.getElementById('snapshot-overlay').style.display = 'none';
+};
+
+// ── UNDO ──
+async function undoLast(){
+  if(isMyTurn()){
+    // Undo last public action
+    let undone = false;
+    if(publicState.draggables.length>0){
+      publicState.draggables.pop();
+      await set(ref(db,`sessions/${sessionId}/draggables`),publicState.draggables.length>0?publicState.draggables:[]);
+      undone=true;
+    } else if(publicState.strokes.length>0){
+      publicState.strokes.pop();
+      await set(ref(db,`sessions/${sessionId}/strokes`),publicState.strokes.length>0?publicState.strokes:[]);
+      undone=true;
+    }
+    if(undone)redraw();
+  } else {
+    // Undo last private action
+    let undone = false;
+    if(privateState.draggables.length>0){
+      privateState.draggables.pop();
+      undone=true;
+    } else if(privateState.strokes.length>0){
+      privateState.strokes.pop();
+      undone=true;
+    }
+    if(undone){
+      await set(ref(db,`sessions/${sessionId}/privateOf_${myRole}`),{strokes:privateState.strokes,draggables:privateState.draggables});
+      redraw();
+    }
+  }
+}
+window.undoLast = undoLast;
+
+// ── TOOLS ──
+window.selectTool=function(t){
+  commitTyping();currentTool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+t).classList.add('active');
+  document.getElementById('font-list').style.display=t==='type'?'flex':'none';
+  canvas.style.cursor=t==='type'?'text':'crosshair';
+};
+window.selectFont=function(el){
+  document.querySelectorAll('.font-opt').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');selectedFont=FONT_MAP[el.dataset.font];
+};
+window.setCanvasColor=async function(color){
+  if(!isMyTurn())return;
+  canvasBg=color;
+  await set(ref(db,`sessions/${sessionId}/canvasBg`),color);
+  redraw();
+};
+
+// ── SHARE PRIVATE ──
+window.sharePrivate=async function(){
+  if(privateShared)return;
+  const merged={
+    strokes:[...publicState.strokes,...pendingPrivate.strokes],
+    draggables:[...publicState.draggables,...pendingPrivate.draggables]
+  };
+  await update(ref(db,`sessions/${sessionId}`),{
+    strokes:merged.strokes,
+    draggables:merged.draggables,
+    privateShared:true,
+    pendingPrivate:{strokes:[],draggables:[]}
+  });
+  pendingPrivate={strokes:[],draggables:[]};
+  document.getElementById('share-btn-top').style.display='none';
+  redraw();
+};
+
+// ── TURN SWITCH (only called by active turn person's timer) ──
+async function doSwitchTurn(){
+  commitTyping();
+  // Capture snapshot of current public canvas before clearing
+  captureSnapshot();
+  const nextTurn=currentTurnRole==='creator'?'joiner':'creator';
+  // Get the waiting person's private work from Firebase
+  const waitingRole=currentTurnRole==='creator'?'joiner':'creator';
+  const waitingSnap=await new Promise(res=>onValue(ref(db,`sessions/${sessionId}/privateOf_${waitingRole}`),res,{onlyOnce:true}));
+  const waitingData=waitingSnap.val();
+  const pendingStrokes=waitingData?normalizeStrokes(waitingData.strokes):[];
+  const pendingDraggables=waitingData?normalizeDraggables(waitingData.draggables):[];
+  const hasPending=pendingStrokes.length>0||pendingDraggables.length>0;
+
+  await update(ref(db,`sessions/${sessionId}`),{
+    pendingPrivate:hasPending?{strokes:pendingStrokes,draggables:pendingDraggables}:{strokes:[],draggables:[]},
+    privateShared:false,
+    strokes:[],
+    draggables:[],
+    canvasBg:'#ffffff',
+    timerSeconds:120,
+    currentTurn:nextTurn
+  });
+  // Clear the waiting person's saved private data
+  await set(ref(db,`sessions/${sessionId}/privateOf_${waitingRole}`),null);
+  publicState.strokes=[];publicState.draggables=[];
+  canvasBg='#ffffff';timerSeconds=120;warningShown=false;
+  pendingPrivate={strokes:[],draggables:[]};
+  redraw();
+}
+
+// ── TIMER ──
+function startTimerSync(){
+  timerInterval=setInterval(async()=>{
+    if(!isMyTurn())return;
+    timerSeconds--;
+    if(timerSeconds===30&&!warningShown){warningShown=true;document.getElementById('turn-warning').style.display='block';}
+    if(timerSeconds<=0){await doSwitchTurn();return;}
+    await set(ref(db,`sessions/${sessionId}/timerSeconds`),timerSeconds);
+    updateTimerDisplay();
+  },1000);
+}
+function updateTimerDisplay(){
+  const m=Math.floor(timerSeconds/60).toString().padStart(2,'0');
+  const s=(timerSeconds%60).toString().padStart(2,'0');
+  document.getElementById('timer-box').textContent=m+':'+s;
+  if(timerSeconds===30&&!warningShown&&isMyTurn()){warningShown=true;document.getElementById('turn-warning').style.display='block';}
+}
+
+// ── FIREBASE LISTENERS ──
+function startListeners(){
+  onValue(ref(db,`sessions/${sessionId}/currentTurn`),snap=>{
+    if(!snap.val())return;
+    const prev=currentTurnRole;
+    currentTurnRole=snap.val();
+    // If it just became MY turn, clear my private state (new turn begins)
+    if(isMyTurn()&&prev!==myRole){
+      privateState.strokes=[];privateState.draggables=[];
+    }
+    updateTurnUI();
+  });
+  onValue(ref(db,`sessions/${sessionId}/canvasBg`),snap=>{
+    if(snap.val()){canvasBg=snap.val();redraw();}
+  });
+  onValue(ref(db,`sessions/${sessionId}/strokes`),snap=>{
+    publicState.strokes=normalizeStrokes(snap.val());redraw();
+  });
+  onValue(ref(db,`sessions/${sessionId}/draggables`),snap=>{
+    publicState.draggables=normalizeDraggables(snap.val());redraw();
+  });
+  onValue(ref(db,`sessions/${sessionId}/pendingPrivate`),snap=>{
+    const data=snap.val();
+    if(data&&(data.strokes||data.draggables)){
+      pendingPrivate.strokes=normalizeStrokes(data.strokes);
+      pendingPrivate.draggables=normalizeDraggables(data.draggables);
+    } else {
+      pendingPrivate={strokes:[],draggables:[]};
+    }
+    redraw();
+  });
+  onValue(ref(db,`sessions/${sessionId}/privateShared`),snap=>{
+    privateShared=!!snap.val();
+    if(privateShared) document.getElementById('share-btn-top').style.display='none';
+    redraw();
+  });
+  onValue(ref(db,`sessions/${sessionId}/timerSeconds`),snap=>{
+    if(snap.val()!==null){timerSeconds=snap.val();updateTimerDisplay();}
+  });
+  onValue(ref(db,`sessions/${sessionId}/ended`),snap=>{
+    if(snap.val()===true)showEndScreen();
+  });
+  onValue(ref(db,`sessions/${sessionId}/presence`),snap=>{
+    updatePresenceUI(snap.val()||{});
+  });
+  onValue(ref(db,`sessions/${sessionId}/snapshots`),snap=>{
+    const data=snap.val();
+    if(data)renderSnapshots(data);
+  });
+}
+
+// ── UI ──
+function updateTurnUI(){
+  const activeName=currentTurnRole==='creator'?(myRole==='creator'?myName:theirName):(myRole==='joiner'?myName:theirName);
+  document.getElementById('turn-label').textContent=isMyTurn()?'Your Turn':`${activeName}'s Turn`;
+  document.getElementById('turn-warning').style.display='none';
+  warningShown=false;
+  const hasPending=pendingPrivate.strokes.length>0||pendingPrivate.draggables.length>0;
+  // Share button only appears at start of turn if there is pending private content
+  document.getElementById('share-btn-top').style.display=(isMyTurn()&&hasPending&&!privateShared)?'inline-block':'none';
+  // show/hide emotion row based on turn
+  document.getElementById('bottom-bar').style.display=isMyTurn()?'block':'none';
+  // update hint text
+  hintEl.innerHTML=`You can type and draw here.<br>${activeName} will not be able to see it without your permission.`;
+  alignBars();buildEmotionRow();redraw();
+}
+function updatePresenceUI(p){
+  const row=document.getElementById('canvas-presence');
+  const creatorName=myRole==='creator'?myName:theirName;
+  const joinerName=myRole==='joiner'?myName:theirName;
+  row.innerHTML=`<div class="cp-item"><div class="cp-dot ${p.creator?'online':''}"></div><span>${creatorName}</span></div><div class="cp-item"><div class="cp-dot ${p.joiner?'online':''}"></div><span>${joinerName}</span></div>`;
+}
+window.showConfirm=function(){document.getElementById('confirm-popup').style.display='block';document.getElementById('end-conv-btn').style.display='none';};
+window.hideConfirm=function(){document.getElementById('confirm-popup').style.display='none';document.getElementById('end-conv-btn').style.display='block';};
+window.endConversation=async function(){await set(ref(db,`sessions/${sessionId}/ended`),true);};
+function showEndScreen(){
+  clearInterval(timerInterval);
+  document.getElementById('canvas-screen').style.display='none';
+  const es=document.getElementById('end-screen');es.style.display='flex';
+  typewriterEffect(document.getElementById('end-text'),`${isMyTurn()?myName:theirName} ended the conversation.`,60);
+}
+
+// ── SESSION ──
+window.createSession=async function(){
+  const mn=document.getElementById('my-name').value.trim();
+  const tn=document.getElementById('their-name').value.trim();
+  if(!mn||!tn){alert('Please enter both names.');return;}
+  myName=mn;theirName=tn;myRole='creator';
+  const newRef=push(ref(db,'sessions'));sessionId=newRef.key;
+  await set(newRef,{creator:myName,joiner:theirName,currentTurn:'creator',canvasBg:'#ffffff',timerSeconds:120,started:false,ended:false,strokes:[],pendingPrivate:{strokes:[],draggables:[]},privateShared:false,presence:{creator:true,joiner:false}});
+  const url=window.location.href.split('?')[0]+'?s='+sessionId+'&r=joiner&me='+encodeURIComponent(tn)+'&them='+encodeURIComponent(mn);
+  document.getElementById('session-url').textContent=url;
+  const presRef=ref(db,`sessions/${sessionId}/presence/creator`);
+  await set(presRef,true);onDisconnect(presRef).set(false);
+  document.getElementById('get-url-btn').style.display='none';
+  document.getElementById('start-waiting-btn').style.display='inline-block';
+  listenForJoiner();
+};
+window.goToWaiting=function(){showWaiting(document.getElementById('session-url').textContent);};
+function showWaiting(url){
+  document.getElementById('lobby-screen').style.display='none';
+  document.getElementById('waiting-screen').style.display='flex';
+  document.getElementById('waiting-text').textContent=`Waiting for ${theirName} to join…`;
+  document.getElementById('waiting-url').textContent=url;
+}
+window.copyUrl=function(){
+  const u=document.getElementById('waiting-url').textContent;
+  navigator.clipboard.writeText(u).then(()=>{document.getElementById('waiting-url').textContent='Copied!';setTimeout(()=>document.getElementById('waiting-url').textContent=u,2000);});
+};
+function listenForJoiner(){onValue(ref(db,`sessions/${sessionId}/presence/joiner`),snap=>{if(snap.val()===true)startConversation();});}
+
+async function tryJoin(){
+  const params=new URLSearchParams(window.location.search);
+  sessionId=params.get('s');myRole=params.get('r');
+  myName=decodeURIComponent(params.get('me')||'');
+  theirName=decodeURIComponent(params.get('them')||'');
+  if(!sessionId||myRole!=='joiner')return;
+  document.getElementById('lobby-screen').style.display='none';
+  const presRef=ref(db,`sessions/${sessionId}/presence/joiner`);
+  await set(presRef,true);onDisconnect(presRef).set(false);
+  await update(ref(db,`sessions/${sessionId}`),{started:true});
+  startConversation();
+}
+
+function startConversation(){
+  document.getElementById('waiting-screen').style.display='none';
+  document.getElementById('lobby-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='none';
+  const ws=document.getElementById('welcome-screen');ws.style.display='flex';
+  const greeting=myRole==='joiner'?`Hi ${myName}. ${theirName} invited you to have a conversation.`:`Hi ${myName}. Your conversation with ${theirName} is starting.`;
+  typewriterEffect(document.getElementById('welcome-text'),greeting,55);
+  setTimeout(()=>{ws.style.display='none';showCanvas();},greeting.length*55+1000);
+}
+function showCanvas(){
+  const cs=document.getElementById('canvas-screen');cs.style.display='flex';cs.style.flexDirection='column';
+  setTimeout(()=>{resizeCanvas();startListeners();startTimerSync();},100);
+}
+function typewriterEffect(el,text,speed){el.textContent='';let i=0;const t=setInterval(()=>{el.textContent+=text[i];i++;if(i>=text.length)clearInterval(t);},speed);}
+window.addEventListener('resize',()=>{if(document.getElementById('canvas-screen').style.display!=='none')resizeCanvas();});
+
+// ── INIT ──
+const initParams=new URLSearchParams(window.location.search);
+const isJoinerInit=initParams.get('r')==='joiner'&&initParams.get('s');
+if(isJoinerInit){
+  document.getElementById('splash-screen').style.display='none';
+  document.getElementById('lobby-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  tryJoin();
+} else {
+  document.getElementById('loading-screen').style.display='none';
+  typewriterEffect(document.getElementById('splash-text'),'Hash it out. A platform for healthier arguments.',55);
+  setTimeout(()=>{
+    document.getElementById('splash-screen').style.display='none';
+    document.getElementById('lobby-screen').style.display='flex';
+  },'Hash it out. A platform for healthier arguments.'.length*55+800);
+}
+</script>
+<div id="snapshot-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;cursor:pointer;" onclick="this.style.display='none'">
+  <img id="snapshot-overlay-img" src="" style="max-width:90%;max-height:90%;border:1px solid #444;display:block;" />
+</div>
+</body>
+</html>
